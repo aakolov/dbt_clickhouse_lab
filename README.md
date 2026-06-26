@@ -8,34 +8,32 @@
 ## Lab plan
 
 - [Fork this repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
-- [Configure Developer Environment](#1-configure-developer-environment)
+- [Configure Developer Environment](#1-configure-developer-environment):
     - Start with GitHub Codespaces
     - Use devcontainer (locally)
-- [Deploy Infrastructure to Yandex.Cloud with Terraform](#2-deploy-infrastructure-to-yandexcloud-with-terraform)
+- [Deploy Infrastructure to Yandex.Cloud with Terraform](#2-deploy-infrastructure-to-yandexcloud-with-terraform):
     - Get familiar with Yandex.Cloud web UI
     - Configure `yc` CLI
     - Populate `.env` file, Set environment variables
     - Deploy using Terraform: Clickhouse
-- [Check database connection](#3-check-database-connection)
+- [Check database connection](#3-check-database-connection):
     - Configure JDBC (DBeaver) connection
     - Configure dbt connection
-- [Deploy DWH](#4-deploy-dwh)
+- [Deploy DWH](#4-deploy-dwh):
     - Install dbt packages
     - Stage data sources with dbt macro
     - Describe sources in [sources.yml](./models/sources/sources.yml) file
     - Build staging models
     - Prepare a data mart (wide table)
-- [Model read-optimized Data Mart](#5-model-read-optimized-data-mart)
+- [Model read-optimized Data Mart](#5-model-read-optimized-data-mart):
     - Turn SQL code into dbt model [f_orders_stats](./models/marts/f_orders_stats.sql)
     - Open PR and trigger automated testing with Github Actions
 - [Delete cloud resources](#delete-cloud-resources)
 
-
 ## 1. Configure Developer Environment
 
-
 You have got several options to set up:
- 
+
 <details><summary>Start with GitHub Codespaces</summary>
 <p>
 
@@ -86,7 +84,7 @@ If any of these commands fails printing out used software version then you are p
 
     We will deploy:
     - [Yandex Managed Service for ClickHouse](https://cloud.yandex.com/en/services/managed-clickhouse)
-    
+
     ![](./docs/clickhouse_management_console.gif)
 
 1. Configure `yc` CLI: [Getting started with the command-line interface by Yandex Cloud](https://cloud.yandex.com/en/docs/cli/quickstart#install)
@@ -100,14 +98,14 @@ If any of these commands fails printing out used software version then you are p
     `.env` is used to store secrets as environment variables.
 
     Copy template file [.env.template](./.env.template) to `.env` file:
+
     ```bash
     cp .env.template .env
     ```
 
     Open file in editor and set your own values.
 
-    > ❗️ Never commit secrets to git    
-
+    > ❗️ Never commit secrets to git
 
 1. Set environment variables:
 
@@ -121,7 +119,7 @@ If any of these commands fails printing out used software version then you are p
 1. Deploy using Terraform
 
     Configure YC Terraform provider:
-    
+
     ```bash
     cp terraformrc ~/.terraformrc
     ```
@@ -146,7 +144,7 @@ If any of these commands fails printing out used software version then you are p
     ```
 
     [EN] Reference: [Getting started with Terraform by Yandex Cloud](https://cloud.yandex.com/en/docs/tutorials/infrastructure-management/terraform-quickstart)
-    
+
     [RU] Reference: [Начало работы с Terraform by Yandex Cloud](https://cloud.yandex.ru/docs/tutorials/infrastructure-management/terraform-quickstart)
 
 ## 3. Check database connection
@@ -246,7 +244,43 @@ dbt build -s f_orders_stats
 
 ![](./docs/f_orders_stats.png)
 
-## 6. Create PR and make CI tests pass
+## 6. Data Vault Implementation
+
+This project includes a Data Vault 2.0 implementation for enhanced flexibility and auditability.
+
+### Overview
+
+Data Vault 2.0 consists of three main components:
+
+- **Hubs**: Store business keys (hub_customer, hub_order, hub_part, hub_supplier)
+- **Links**: Represent relationships (link_order_customer, link_order_lineitem)
+- **Satellites**: Store descriptive attributes with history (sat_*.sql)
+
+### Running Data Vault Models
+
+```bash
+# Run all Data Vault models
+dbt run -s tag:datavault
+
+# Run specific hub
+dbt run --models hub_customer
+
+# Run all satellites
+dbt run --models 'tag:satellite'
+```
+
+### Backward Compatibility
+
+Data Vault models include views for backward compatibility:
+
+- `f_lineorder_flat_dv` - Wide table for reporting
+- `f_orders_stats_dv` - Aggregated statistics
+
+### Documentation
+
+See [docs/DATA_VAULT.md](./docs/DATA_VAULT.md) for detailed documentation.
+
+## 7. Create PR and make CI tests pass
 
 If it works from your terminal, commit, open PR and trigger automated testing with Github Actions
 

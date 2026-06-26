@@ -369,20 +369,17 @@ GROUP BY
     │ L_QUANTITY        │  │ C_ACCTBAL    │  │ P_TYPE        │  │ S_ACCTBAL       │
     │ L_EXTENDEDPRICE   │  │ C_MKTSEGMENT │  │ P_SIZE        │  │ S_COMMENT       │
     │ L_DISCOUNT        │  │ C_COMMENT    │  │ P_CONTAINER   │  └─────────────────┘
-    │ L_TAX             │  │ C_MKTSEGMENT │  │ P_RETAILPRICE │
-    │ L_RETURNFLAG      │  │ C_COMMENT    │  │ P_COMMENT     │
-    │ L_LINESTATUS      │  └──────────────┘  └───────────────┘
-    │ L_SHIPDATE        │
-    │ L_COMMITDATE      │
-    │ L_RECEIPTDATE     │
-    │ L_SHIPINSTRUCT    │
-    │ L_SHIPMODE        │
-    │ L_COMMENT         │
-    └───────────────────┘
-
-              ▲                    ▲               ▲                    ▲
-              │                    │               │                    │
-              └────────────────────┼───────────────┴────────────────────┘
+    │ L_TAX             │  │ C_MKTSEGMENT │  │ P_RETAILPRICE │           ▲
+    │ L_RETURNFLAG      │  │ C_COMMENT    │  │ P_COMMENT     │           │
+    │ L_LINESTATUS      │  └──────────────┘  └───────────────┘           │
+    │ L_RECEIPTDATE     │          │                 │                   │
+    │ L_SHIPINSTRUCT    │          │                 │                   │
+    │ L_SHIPMODE        │          │                 │                   │
+    │ L_COMMENT         │          │                 │                   │
+    └───────────────────┘          │                 │                   │
+              ▲                    │                 │                   │ 
+              │                    │                 │                   │ 
+              └────────────────────┼─────────────────┴───────────────────┘
                                    │
                          ┌─────────┴─────────┐
                          │  f_lineorder_flat │
