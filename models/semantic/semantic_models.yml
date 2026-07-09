@@ -1,0 +1,230 @@
+version: 2
+
+semantic_models:
+  - name: orders_analysis
+    model: ref('f_orders_stats_dv')
+    description: "Агрегированная статистика по заказам для анализа"
+    defaults:
+      agg_time: O_ORDERDATE
+    dimensions:
+      - name: order_year
+        expr: O_ORDERYEAR
+        description: "Год заказа"
+        type: time
+        type_params:
+          time_granularity: year
+      - name: order_status
+        expr: O_ORDERSTATUS
+        description: "Статус заказа"
+        type: categorical
+      - name: order_priority
+        expr: O_ORDERPRIORITY
+        description: "Приоритет заказа"
+        type: categorical
+    measures:
+      - name: num_orders
+        expr: num_orders
+        agg: sum
+      - name: num_customers
+        expr: num_customers
+        agg: sum
+      - name: revenue
+        expr: revenue
+        agg: sum
+
+  - name: lineitem_details
+    model: ref('f_lineorder_flat_dv')
+    description: "Детальная информация о позициях заказов"
+    dimensions:
+      - name: order_date
+        expr: O_ORDERDATE
+        description: "Дата заказа"
+        type: time
+        type_params:
+          time_granularity: day
+      - name: return_flag
+        expr: L_RETURNFLAG
+        description: "Флаг возврата"
+        type: categorical
+      - name: line_status
+        expr: L_LINESTATUS
+        description: "Статус позиции"
+        type: categorical
+      - name: ship_mode
+        expr: L_SHIPMODE
+        description: "Способ доставки"
+        type: categorical
+    measures:
+      - name: quantity
+        expr: L_QUANTITY
+        agg: sum
+      - name: extended_price
+        expr: L_EXTENDEDPRICE
+        agg: sum
+      - name: discount_amount
+        expr: L_EXTENDEDPRICE * L_DISCOUNT
+        agg: sum
+      - name: tax_amount
+        expr: L_TAX
+        agg: sum
+
+  - name: customer_history
+    model: ref('sat_customer_details')
+    description: "История изменений данных клиентов"
+    dimensions:
+      - name: load_date
+        expr: LOAD_DATE
+        description: "Дата загрузки"
+        type: time
+        type_params:
+          time_granularity: day
+      - name: customer_name
+        expr: C_NAME
+        description: "Имя клиента"
+      - name: customer_address
+        expr: C_ADDRESS
+        description: "Адрес клиента"
+      - name: customer_segment
+        expr: C_MKTSEGMENT
+        description: "Сегмент клиента"
+        type: categorical
+    measures:
+      - name: is_active
+        expr: 1
+        agg: max
+
+  - name: order_history
+    model: ref('sat_order_details')
+    description: "История изменений данных заказов"
+    dimensions:
+      - name: load_date
+        expr: LOAD_DATE
+        description: "Дата загрузки"
+        type: time
+        type_params:
+          time_granularity: day
+      - name: order_status
+        expr: O_ORDERSTATUS
+        description: "Статус заказа"
+        type: categorical
+      - name: order_priority
+        expr: O_ORDERPRIORITY
+        description: "Приоритет заказа"
+        type: categorical
+    measures:
+      - name: order_total_price
+        expr: O_TOTALPRICE
+        agg: sum
+
+  - name: calendar
+    model: ref('dim_calendar')
+    description: "Унифицированный календарь для временных измерений"
+    dimensions:
+      - name: date_day
+        expr: date_day
+        description: "Дата"
+        type: time
+        type_params:
+          time_granularity: day
+      - name: year
+        expr: year
+        description: "Год"
+        type: time
+        type_params:
+          time_granularity: year
+      - name: month
+        expr: month
+        description: "Месяц"
+        type: time
+        type_params:
+          time_granularity: month
+      - name: quarter
+        expr: quarter
+        description: "Квартал"
+        type: time
+        type_params:
+          time_granularity: quarter
+      - name: week_of_year
+        expr: week_of_year
+        description: "Неделя года"
+        type: time
+        type_params:
+          time_granularity: week
+      - name: day_of_week
+        expr: day_of_week
+        description: "День недели"
+        type: categorical
+      - name: season
+        expr: season
+        description: "Время года"
+        type: categorical
+      - name: half_year
+        expr: half_year
+        description: "Полугодие"
+        type: categorical
+      - name: is_weekend
+        expr: is_weekend
+        description: "Выходной день"
+        type: categorical
+      - name: is_business_day
+        expr: is_business_day
+        description: "Рабочий день"
+        type: categorical
+      - name: is_holiday
+        expr: is_holiday
+        description: "Праздничный день"
+        type: categorical
+      - name: month_start
+        expr: month_start
+        description: "Начало месяца"
+        type: time
+        type_params:
+          time_granularity: month
+      - name: quarter_start
+        expr: quarter_start
+        description: "Начало квартала"
+        type: time
+        type_params:
+          time_granularity: quarter
+      - name: quarter_name
+        expr: quarter_name
+        description: "Название квартала"
+        type: categorical
+      - name: week_start
+        expr: week_start
+        description: "Начало недели"
+        type: time
+        type_params:
+          time_granularity: week
+      - name: day_of_year
+        expr: day_of_year
+        description: "Номер дня в году"
+        type: categorical
+      - name: date_key
+        expr: date_key
+        description: "Ключ даты (YYYY-MM-DD)"
+        type: categorical
+      - name: date_formatted
+        expr: date_formatted
+        description: "Форматированная дата (ДД.ММ.ГГГГ)"
+        type: categorical
+      - name: month_year
+        expr: month_year
+        description: "Месяц и год"
+        type: categorical
+      - name: quarter_year
+        expr: quarter_year
+        description: "Квартал и год"
+        type: categorical
+      - name: is_christmas_season
+        expr: is_christmas_season
+        description: "Рождественский сезон"
+        type: categorical
+      - name: is_january_buying_season
+        expr: is_january_buying_season
+        description: "Январский сезон распродаж"
+        type: categorical
+      - name: quarter_short
+        expr: quarter_short
+        description: "Короткое название квартала"
+        type: categorical

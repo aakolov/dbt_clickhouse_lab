@@ -1,0 +1,88 @@
+version: 2
+
+metrics:
+  # Агрегированные метрики
+  - name: total_revenue
+    description: "Общая выручка от продаж"
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+
+  - name: order_count
+    description: "Количество заказов"
+    type: simple
+    type_params:
+      measure: num_orders
+      agg: sum
+
+  - name: customer_count
+    description: "Уникальное количество заказчиков"
+    type: simple
+    type_params:
+      measure: num_customers
+      agg: sum
+
+  - name: avg_order_value
+    description: "Средний чек"
+    type: derived
+    type_params:
+      expr: total_revenue / order_count
+
+  # Метрики с фильтрацией
+  - name: revenue_by_status
+    description: "Выручка по статусу заказа"
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      filters:
+        - dimension: order_status
+          value: "O"
+
+  # Метрики со временем
+  - name: monthly_revenue
+    description: "Выручка по месяцам"
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      window: 1 month
+
+  - name: revenue_growth_rate
+    description: "Темп роста выручки (YOY)"
+    type: derived
+    type_params:
+      expr: ((monthly_revenue - monthly_revenue_previous_year) / monthly_revenue_previous_year) * 100
+
+  # Метрики по категориям
+  - name: revenue_by_ship_mode
+    description: "Выручка по способу доставки"
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      group_by:
+        - ship_mode
+
+  # Детальные метрики
+  - name: total_quantity
+    description: "Общее количество товаров"
+    type: simple
+    type_params:
+      measure: quantity
+      agg: sum
+
+  - name: total_discount
+    description: "Общая сумма скидок"
+    type: simple
+    type_params:
+      measure: discount_amount
+      agg: sum
+
+  - name: total_tax
+    description: "Общая сумма налогов"
+    type: simple
+    type_params:
+      measure: tax_amount
+      agg: sum

@@ -1,44 +1,118 @@
-
 version: 2
 
 models:
+  - name: dim_calendar
+    description: "Унифицированное временное измерение для анализа по датам"
+    columns:
+      - name: date_day
+        description: "День календаря"
+        tests:
+          - unique
+          - not_null
 
-    - name: stg_customer
-      columns:
-        - name: C_CUSTKEY
-          description: ""
-          tests:
-            - unique
-            - not_null
+      - name: year
+        description: "Год"
+        tests:
+          - not_null
 
-    - name: stg_orders
-      columns:
-        - name: O_ORDERKEY
-          description: ""
-          tests:
-            - unique
-            - not_null
+      - name: month
+        description: "Месяц"
+        tests:
+          - not_null
 
-    - name: stg_lineitem
-      columns:
-        - name: L_ITEMKEY
-          description: ""
-          tests:
-            - unique
-            - not_null
+      - name: month_start
+        description: "Начало месяца"
+        tests:
+          - not_null
 
-    - name: stg_part
-      columns:
-        - name: P_PARTKEY
-          description: ""
-          tests:
-            - unique
-            - not_null
+      - name: quarter
+        description: "Квартал"
+        tests:
+          - not_null
 
-    - name: stg_supplier
-      columns:
-        - name: S_SUPPKEY
-          description: ""
-          tests:
-            - unique
-            - not_null
+      - name: quarter_start
+        description: "Начало квартала"
+        tests:
+          - not_null
+
+      - name: week_of_year
+        description: "Неделя года"
+        tests:
+          - not_null
+
+      - name: week_start
+        description: "Начало недели"
+        tests:
+          - not_null
+
+      - name: day_of_week
+        description: "День недели (1=Пн, 7=Вс)"
+        tests:
+          - not_null
+
+      - name: day_of_year
+        description: "День года"
+        tests:
+          - not_null
+
+      - name: date_key
+        description: "Ключ даты в формате YYYY-MM-DD"
+        tests:
+          - unique
+          - not_null
+
+      - name: date_formatted
+        description: "Форматированная дата DD.MM.YYYY"
+        tests:
+          - not_null
+
+      - name: month_year
+        description: "Месяц и год"
+        tests:
+          - not_null
+
+      - name: quarter_year
+        description: "Квартал и год"
+        tests:
+          - not_null
+
+      - name: is_holiday
+        description: "Выходной день"
+        tests:
+          - not_null
+
+      - name: is_weekend
+        description: "Выходной день (сб, вс)"
+        tests:
+          - not_null
+
+      - name: is_business_day
+        description: "Рабочий день"
+        tests:
+          - not_null
+
+      - name: is_christmas_season
+        description: "Рождественский сезон"
+        tests:
+          - not_null
+
+      - name: is_january_buying_season
+        description: "Сезон январских покупок"
+        tests:
+          - not_null
+
+      - name: season
+        description: "Время года"
+        tests:
+          - not_null
+
+      - name: half_year
+        description: "Полугодие"
+        tests:
+          - not_null
+
+      - name: time_id
+        description: "Идентификатор времени"
+        tests:
+          - unique
+          - not_null
