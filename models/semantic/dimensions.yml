@@ -1,9 +1,10 @@
 version: 2
 
 dimensions:
-  # Измерения заказа
+  # === Измерения заказа ===
+  
   - name: order_status_dim
-    description: "Статус заказа"
+    description: "Статус заказа. Определяет текущее состояние заказа: Open (O), Filled (F) или Pending (P)."
     type: categorical
     sql: O_ORDERSTATUS
     values:
@@ -18,9 +19,19 @@ dimensions:
         dimension: order_status
       - semantic_model: order_history
         dimension: order_status
+    metadata:
+      tags:
+        - order
+        - status
+        - reference
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_status_dim, COUNT(*) FROM semantic.order_status_dim GROUP BY order_status_dim"
+        - query: "SELECT order_status_dim, SUM(total_revenue) FROM semantic.order_status_dim GROUP BY order_status_dim"
 
   - name: order_priority_dim
-    description: "Приоритет заказа"
+    description: "Приоритет заказа. Определяет важность и срочность выполнения заказа (1-URGENT до 5-LOW)."
     type: categorical
     sql: O_ORDERPRIORITY
     values:
@@ -39,10 +50,20 @@ dimensions:
         dimension: order_priority
       - semantic_model: order_history
         dimension: order_priority
+    metadata:
+      tags:
+        - order
+        - priority
+        - reference
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_priority_dim, AVG(avg_order_value) FROM semantic.order_priority_dim GROUP BY order_priority_dim"
 
-  # Измерения клиента
+  # === Измерения клиента ===
+  
   - name: customer_segment_dim
-    description: "Сегмент клиента"
+    description: "Сегмент клиента. Классификация клиентов по типу бизнеса (Автомобили, Строительство, Мебель и т.д.)."
     type: categorical
     sql: C_MKTSEGMENT
     values:
@@ -59,35 +80,71 @@ dimensions:
     references:
       - semantic_model: customer_history
         dimension: customer_segment
+    metadata:
+      tags:
+        - customer
+        - segmentation
+        - reference
+      sensitivity: public
+      owner: marketing_team
+      examples:
+        - query: "SELECT customer_segment_dim, SUM(revenue_by_customer_segment) FROM semantic.customer_segment_dim GROUP BY customer_segment_dim"
 
-  # Измерения товара
+  # === Измерения товара ===
+  
   - name: product_type_dim
-    description: "Тип товара"
+    description: "Тип товара. Описывает характеристики товара (например, 'STANDARD', 'ECONOMY', 'PREMIUM')."
     type: categorical
     sql: P_TYPE
     references:
       - semantic_model: lineitem_details
         dimension: product_type
+    metadata:
+      tags:
+        - product
+        - reference
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT product_type_dim, SUM(total_quantity) FROM semantic.product_type_dim GROUP BY product_type_dim"
 
   - name: product_size_dim
-    description: "Размер товара"
+    description: "Размер товара. Числовое значение размера товара (от 1 до 50)."
     type: categorical
     sql: P_SIZE
     references:
       - semantic_model: lineitem_details
         dimension: product_size
+    metadata:
+      tags:
+        - product
+        - reference
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT product_size_dim, AVG(avg_quantity_per_order) FROM semantic.product_size_dim GROUP BY product_size_dim"
 
-  # Измерения доставки
+  # === Измерения доставки ===
+  
   - name: ship_mode_dim
-    description: "Способ доставки"
+    description: "Способ доставки. Определяет метод доставки товара (AIR, TRUCK, REG AIR, IR, etc.)."
     type: categorical
     sql: L_SHIPMODE
     references:
       - semantic_model: lineitem_details
         dimension: ship_mode
+    metadata:
+      tags:
+        - logistics
+        - shipping
+        - reference
+      sensitivity: public
+      owner: logistics_team
+      examples:
+        - query: "SELECT ship_mode_dim, SUM(revenue_by_ship_mode) FROM semantic.ship_mode_dim GROUP BY ship_mode_dim"
 
   - name: return_flag_dim
-    description: "Флаг возврата"
+    description: "Флаг возврата. Указывает, был ли товар возвращен (R=Возвращен, N=Не возвращен)."
     type: categorical
     sql: L_RETURNFLAG
     values:
@@ -98,9 +155,18 @@ dimensions:
     references:
       - semantic_model: lineitem_details
         dimension: return_flag
+    metadata:
+      tags:
+        - logistics
+        - return
+        - reference
+      sensitivity: public
+      owner: logistics_team
+      examples:
+        - query: "SELECT return_flag_dim, COUNT(*) FROM semantic.return_flag_dim GROUP BY return_flag_dim"
 
   - name: line_status_dim
-    description: "Статус позиции"
+    description: "Статус позиции заказа. Указывает, завершена ли позиция (F=Завершена, O=В процессе)."
     type: categorical
     sql: L_LINESTATUS
     values:
@@ -111,10 +177,20 @@ dimensions:
     references:
       - semantic_model: lineitem_details
         dimension: line_status
+    metadata:
+      tags:
+        - order
+        - status
+        - reference
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT line_status_dim, SUM(total_quantity) FROM semantic.line_status_dim GROUP BY line_status_dim"
 
-  # Временные измерения с разными гранулярностями
+  # === Временные измерения с разными гранулярностями ===
+  
   - name: order_month
-    description: "Месяц заказа"
+    description: "Месяц заказа. Год и месяц в формате YYYYMM. Используется для агрегации по месяцам."
     type: time
     sql: toYearMonth(O_ORDERDATE)
     type_params:
@@ -126,9 +202,18 @@ dimensions:
         dimension: order_month
       - semantic_model: calendar
         dimension: month
+    metadata:
+      tags:
+        - time
+        - month
+        - formatted
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_month, SUM(monthly_revenue) FROM semantic.order_month GROUP BY order_month ORDER BY order_month"
 
   - name: order_quarter
-    description: "Квартал заказа"
+    description: "Квартал заказа. Дата начала квартала. Используется для агрегации по кварталам."
     type: time
     sql: toStartOfQuarter(O_ORDERDATE)
     type_params:
@@ -140,9 +225,17 @@ dimensions:
         dimension: order_quarter
       - semantic_model: calendar
         dimension: quarter
+    metadata:
+      tags:
+        - time
+        - quarter
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_quarter, SUM(quarterly_revenue) FROM semantic.order_quarter GROUP BY order_quarter ORDER BY order_quarter"
 
   - name: order_week
-    description: "Неделя заказа"
+    description: "Неделя заказа. Дата начала недели (начинается с понедельника). Используется для агрегации по неделям."
     type: time
     sql: toStartOfWeek(O_ORDERDATE, 1)
     type_params:
@@ -154,9 +247,17 @@ dimensions:
         dimension: order_week
       - semantic_model: calendar
         dimension: week_of_year
+    metadata:
+      tags:
+        - time
+        - week
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_week, SUM(total_revenue) FROM semantic.order_week GROUP BY order_week ORDER BY order_week"
 
   - name: order_year_month
-    description: "Год и месяц заказа"
+    description: "Год и месяц заказа. Форматированная строка YYYY-MM. Удобна для сортировки и отображения."
     type: categorical
     sql: toString(toYear(O_ORDERDATE)) + '-' + lpad(toString(toMonth(O_ORDERDATE)), 2, '0')
     references:
@@ -166,9 +267,17 @@ dimensions:
         dimension: order_year_month
       - semantic_model: calendar
         dimension: year_month
+    metadata:
+      tags:
+        - time
+        - formatted
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_year_month, SUM(monthly_revenue) FROM semantic.order_year_month GROUP BY order_year_month ORDER BY order_year_month"
 
   - name: order_quarter_name
-    description: "Название квартала"
+    description: "Название квартала. Форматированная строка YYYY-QN. Удобна для сортировки и отображения."
     type: categorical
     sql: toString(toYear(O_ORDERDATE)) + '-Q' + toString(toQuarter(O_ORDERDATE))
     references:
@@ -178,9 +287,17 @@ dimensions:
         dimension: order_quarter_name
       - semantic_model: calendar
         dimension: quarter_name
+    metadata:
+      tags:
+        - time
+        - formatted
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_quarter_name, SUM(quarterly_revenue) FROM semantic.order_quarter_name GROUP BY order_quarter_name ORDER BY order_quarter_name"
 
   - name: season
-    description: "Время года"
+    description: "Время года. Агрегация по сезонам: Spring (Март-Май), Summer (Июнь-Август), Autumn (Сентябрь-Ноябрь), Winter (Декабрь-Февраль)."
     type: categorical
     sql: CASE WHEN toMonth(O_ORDERDATE) BETWEEN 3 AND 5 THEN 'Spring' WHEN toMonth(O_ORDERDATE) BETWEEN 6 AND 8 THEN 'Summer' WHEN toMonth(O_ORDERDATE) BETWEEN 9 AND 11 THEN 'Autumn' ELSE 'Winter' END
     references:
@@ -190,9 +307,18 @@ dimensions:
         dimension: season
       - semantic_model: calendar
         dimension: season
+    metadata:
+      tags:
+        - time
+        - season
+        - business
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT season, SUM(revenue_by_season) FROM semantic.season GROUP BY season"
 
   - name: half_year
-    description: "Полугодие"
+    description: "Полугодие. H1 (Январь-Июнь) или H2 (Июль-Декабрь)."
     type: categorical
     sql: 'H' + toString(intDiv(toMonth(O_ORDERDATE) - 1, 6) + 1)
     references:
@@ -202,9 +328,17 @@ dimensions:
         dimension: half_year
       - semantic_model: calendar
         dimension: half_year
+    metadata:
+      tags:
+        - time
+        - business
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT half_year, SUM(revenue_by_half_year) FROM semantic.half_year GROUP BY half_year"
 
   - name: day_of_week
-    description: "День недели"
+    description: "День недели. Число от 1 (Понедельник) до 7 (Воскресенье)."
     type: categorical
     sql: toDayOfWeek(O_ORDERDATE)
     values:
@@ -229,9 +363,19 @@ dimensions:
         dimension: day_of_week
       - semantic_model: calendar
         dimension: day_of_week
+    metadata:
+      tags:
+        - time
+        - business
+        - weekend
+        - holiday
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT day_of_week, SUM(revenue_by_day_of_week) FROM semantic.day_of_week GROUP BY day_of_week"
 
   - name: is_weekend
-    description: "Выходной день"
+    description: "Выходной день. Булево значение: true (Выходной), false (Рабочий). Выходными считаются воскресенье (1) и суббота (7)."
     type: categorical
     sql: if(toDayOfWeek(O_ORDERDATE) IN (1, 7), true, false)
     values:
@@ -246,9 +390,18 @@ dimensions:
         dimension: is_weekend
       - semantic_model: calendar
         dimension: is_weekend
+    metadata:
+      tags:
+        - time
+        - weekend
+        - filter
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT is_weekend, AVG(avg_order_value) FROM semantic.is_weekend GROUP BY is_weekend"
 
   - name: is_business_day
-    description: "Рабочий день"
+    description: "Рабочий день. Булево значение: true (Рабочий), false (Не рабочий). Рабочими считаются дни с понедельника по пятницу."
     type: categorical
     sql: if(toDayOfWeek(O_ORDERDATE) NOT IN (1, 7), true, false)
     values:
@@ -263,3 +416,108 @@ dimensions:
         dimension: is_business_day
       - semantic_model: calendar
         dimension: is_business_day
+    metadata:
+      tags:
+        - time
+        - business
+        - filter
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT is_business_day, SUM(total_revenue) FROM semantic.is_business_day GROUP BY is_business_day"
+
+  # === Иерархии временных измерений ===
+  
+  - name: order_date_hierarchy
+    description: "Иерархия даты заказа. Позволяет переключаться между уровнями детализации: год -> квартал -> месяц -> день."
+    type: hierarchy
+    sql:
+      year: toYear(O_ORDERDATE)
+      quarter: toQuarter(O_ORDERDATE)
+      month: toMonth(O_ORDERDATE)
+      day: toDayOfMonth(O_ORDERDATE)
+    references:
+      - semantic_model: orders_analysis
+        dimension: order_date_hierarchy
+      - semantic_model: lineitem_details
+        dimension: order_date_hierarchy
+      - semantic_model: calendar
+        dimension: order_date_hierarchy
+    metadata:
+      tags:
+        - time
+        - hierarchy
+        - key
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_date_hierarchy.year, order_date_hierarchy.quarter, order_date_hierarchy.month, SUM(monthly_revenue) FROM semantic.order_date_hierarchy GROUP BY order_date_hierarchy.year, order_date_hierarchy.quarter, order_date_hierarchy.month ORDER BY order_date_hierarchy.year, order_date_hierarchy.quarter, order_date_hierarchy.month"
+
+  - name: load_date_hierarchy
+    description: "Иерархия даты загрузки. Позволяет переключаться между уровнями детализации: год -> квартал -> месяц -> день. Используется в customer_history и order_history для анализа исторических данных."
+    type: hierarchy
+    sql:
+      year: toYear(LAST_UPDATE_DATE)
+      quarter: toQuarter(LAST_UPDATE_DATE)
+      month: toMonth(LAST_UPDATE_DATE)
+      day: toDayOfMonth(LAST_UPDATE_DATE)
+    references:
+      - semantic_model: customer_history
+        dimension: load_date_hierarchy
+      - semantic_model: order_history
+        dimension: load_date_hierarchy
+    metadata:
+      tags:
+        - time
+        - hierarchy
+        - history
+        - audit
+      sensitivity: internal
+      owner: analytics_team
+      examples:
+        - query: "SELECT load_date_hierarchy.year, load_date_hierarchy.quarter, load_date_hierarchy.month, COUNT(*) FROM semantic.load_date_hierarchy GROUP BY load_date_hierarchy.year, load_date_hierarchy.quarter, load_date_hierarchy.month ORDER BY load_date_hierarchy.year, load_date_hierarchy.quarter, load_date_hierarchy.month"
+
+  # === Дополнительные измерения ===
+  
+  - name: order_year
+    description: "Год заказа. Числовое значение года. Используется для агрегации по годам."
+    type: categorical
+    sql: toYear(O_ORDERDATE)
+    references:
+      - semantic_model: orders_analysis
+        dimension: order_year
+      - semantic_model: lineitem_details
+        dimension: order_year
+      - semantic_model: calendar
+        dimension: year
+    metadata:
+      tags:
+        - time
+        - year
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_year, SUM(yearly_revenue) FROM semantic.order_year GROUP BY order_year ORDER BY order_year"
+
+  - name: order_date
+    description: "Дата заказа. Дата в формате YYYY-MM-DD. Используется для точной даты заказа."
+    type: time
+    sql: O_ORDERDATE
+    type_params:
+      time_granularity: day
+    references:
+      - semantic_model: orders_analysis
+        dimension: order_date
+      - semantic_model: lineitem_details
+        dimension: order_date
+      - semantic_model: calendar
+        dimension: date
+    metadata:
+      tags:
+        - time
+        - key
+        - base
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_date, SUM(total_revenue) FROM semantic.order_date GROUP BY order_date ORDER BY order_date"

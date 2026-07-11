@@ -1,37 +1,77 @@
 version: 2
 
 metrics:
-  # Агрегированные метрики
+  # === Агрегированные метрики ===
+  
   - name: total_revenue
-    description: "Общая выручка от продаж"
+    description: "Общая выручка от продаж. Рассчитывается как сумма L_EXTENDEDPRICE * (1 - L_DISCOUNT) по всем позициям заказов."
     type: simple
     type_params:
       measure: revenue
       agg: sum
+    metadata:
+      tags:
+        - core
+        - revenue
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT total_revenue, order_year FROM semantic.total_revenue GROUP BY order_year ORDER BY order_year"
+        - query: "SELECT total_revenue, order_status FROM semantic.total_revenue GROUP BY order_status"
 
   - name: order_count
-    description: "Количество заказов"
+    description: "Количество заказов. Уникальное количество заказов по всем статусам."
     type: simple
     type_params:
       measure: num_orders
       agg: sum
+    metadata:
+      tags:
+        - core
+        - order_count
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT order_count, order_year FROM semantic.order_count GROUP BY order_year ORDER BY order_year"
+        - query: "SELECT order_count, order_priority FROM semantic.order_count GROUP BY order_priority"
 
   - name: customer_count
-    description: "Уникальное количество заказчиков"
+    description: "Количество уникальных заказчиков. Уникальное количество клиентов, сделавших заказы."
     type: simple
     type_params:
       measure: num_customers
       agg: sum
+    metadata:
+      tags:
+        - core
+        - customer_count
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT customer_count, order_year FROM semantic.customer_count GROUP BY order_year ORDER BY order_year"
 
   - name: avg_order_value
-    description: "Средний чек"
+    description: "Средний чек. Рассчитывается как отношение общей выручки к количеству заказов."
     type: derived
     type_params:
       expr: total_revenue / order_count
+      parents:
+        - name: total_revenue
+        - name: order_count
+    metadata:
+      tags:
+        - core
+        - revenue
+        - derived
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT avg_order_value, order_year FROM semantic.avg_order_value GROUP BY order_year ORDER BY order_year"
 
-  # Метрики с фильтрацией
+  # === Метрики с фильтрацией ===
+  
   - name: revenue_by_status
-    description: "Выручка по статусу заказа"
+    description: "Выручка по статусу заказа. Фильтруется только по открытым заказам (O=Open)."
     type: simple
     type_params:
       measure: revenue
@@ -39,50 +79,432 @@ metrics:
       filters:
         - dimension: order_status
           value: "O"
+    metadata:
+      tags:
+        - revenue
+        - filter
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT revenue_by_status, order_year FROM semantic.revenue_by_status GROUP BY order_year ORDER BY order_year"
 
-  # Метрики со временем
+  - name: orders_open_count
+    description: "Количество открытых заказов. Фильтруется только по открытым заказам (O=Open)."
+    type: simple
+    type_params:
+      measure: num_orders
+      agg: sum
+      filters:
+        - dimension: order_status
+          value: "O"
+    metadata:
+      tags:
+        - order_count
+        - filter
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT orders_open_count, order_year FROM semantic.orders_open_count GROUP BY order_year ORDER BY order_year"
+
+  - name: orders_filled_count
+    description: "Количество завершенных заказов. Фильтруется только по завершенным заказам (F=Filled)."
+    type: simple
+    type_params:
+      measure: num_orders
+      agg: sum
+      filters:
+        - dimension: order_status
+          value: "F"
+    metadata:
+      tags:
+        - order_count
+        - filter
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT orders_filled_count, order_year FROM semantic.orders_filled_count GROUP BY order_year ORDER BY order_year"
+
+  # === Метрики со временем (Time Intelligence) ===
+  
   - name: monthly_revenue
-    description: "Выручка по месяцам"
+    description: "Выручка по месяцам. Агрегируется по месяцу заказа."
     type: simple
     type_params:
       measure: revenue
       agg: sum
       window: 1 month
+    metadata:
+      tags:
+        - revenue
+        - time_series
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT monthly_revenue, order_date FROM semantic.monthly_revenue ORDER BY order_date"
+
+  - name: quarterly_revenue
+    description: "Выручка по кварталам. Агрегируется по кварталу заказа."
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      window: 1 quarter
+    metadata:
+      tags:
+        - revenue
+        - time_series
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT quarterly_revenue, order_date FROM semantic.quarterly_revenue ORDER BY order_date"
+
+  - name: yearly_revenue
+    description: "Выручка по годам. Агрегируется по году заказа."
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      window: 1 year
+    metadata:
+      tags:
+        - revenue
+        - time_series
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT yearly_revenue, order_date FROM semantic.yearly_revenue ORDER BY order_date"
 
   - name: revenue_growth_rate
-    description: "Темп роста выручки (YOY)"
+    description: "Темп роста выручки (Year-over-Year). Рассчитывается как процентное изменение выручки по сравнению с предыдущим годом."
     type: derived
     type_params:
-      expr: ((monthly_revenue - monthly_revenue_previous_year) / monthly_revenue_previous_year) * 100
+      expr: ((yearly_revenue - yearly_revenue_previous_year) / yearly_revenue_previous_year) * 100
+      parents:
+        - name: yearly_revenue
+    metadata:
+      tags:
+        - revenue
+        - growth
+        - derived
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT revenue_growth_rate, order_year FROM semantic.revenue_growth_rate GROUP BY order_year ORDER BY order_year"
 
-  # Метрики по категориям
+  - name: monthly_revenue_growth
+    description: "Темп роста выручки по месяцам (Month-over-Month). Рассчитывается как процентное изменение выручки по сравнению с предыдущим месяцем."
+    type: derived
+    type_params:
+      expr: ((monthly_revenue - monthly_revenue_previous_month) / monthly_revenue_previous_month) * 100
+      parents:
+        - name: monthly_revenue
+    metadata:
+      tags:
+        - revenue
+        - growth
+        - derived
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT monthly_revenue_growth, order_date FROM semantic.monthly_revenue_growth ORDER BY order_date"
+
+  # === Метрики по категориям ===
+  
   - name: revenue_by_ship_mode
-    description: "Выручка по способу доставки"
+    description: "Выручка по способу доставки. Агрегируется по способу доставки."
     type: simple
     type_params:
       measure: revenue
       agg: sum
       group_by:
         - ship_mode
+    metadata:
+      tags:
+        - revenue
+        - logistics
+      sensitivity: public
+      owner: logistics_team
+      examples:
+        - query: "SELECT revenue_by_ship_mode, ship_mode FROM semantic.revenue_by_ship_mode GROUP BY ship_mode"
 
-  # Детальные метрики
+  - name: order_count_by_ship_mode
+    description: "Количество заказов по способу доставки."
+    type: simple
+    type_params:
+      measure: num_orders
+      agg: sum
+      group_by:
+        - ship_mode
+    metadata:
+      tags:
+        - order_count
+        - logistics
+      sensitivity: public
+      owner: logistics_team
+      examples:
+        - query: "SELECT order_count_by_ship_mode, ship_mode FROM semantic.order_count_by_ship_mode GROUP BY ship_mode"
+
+  - name: revenue_by_status
+    description: "Выручка по статусу заказа. Агрегируется по статусу заказа."
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      group_by:
+        - order_status
+    metadata:
+      tags:
+        - revenue
+        - order
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT revenue_by_status, order_status FROM semantic.revenue_by_status GROUP BY order_status"
+
+  # === Метрики детализации ===
+  
   - name: total_quantity
-    description: "Общее количество товаров"
+    description: "Общее количество товаров. Сумма L_QUANTITY по всем позициям заказов."
     type: simple
     type_params:
       measure: quantity
       agg: sum
+    metadata:
+      tags:
+        - core
+        - quantity
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT total_quantity, order_year FROM semantic.total_quantity GROUP BY order_year ORDER BY order_year"
 
   - name: total_discount
-    description: "Общая сумма скидок"
+    description: "Общая сумма скидок. Рассчитывается как SUM(L_EXTENDEDPRICE * L_DISCOUNT)."
     type: simple
     type_params:
       measure: discount_amount
       agg: sum
+    metadata:
+      tags:
+        - pricing
+        - discount
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT total_discount, order_year FROM semantic.total_discount GROUP BY order_year ORDER BY order_year"
 
   - name: total_tax
-    description: "Общая сумма налогов"
+    description: "Общая сумма налогов. Сумма L_TAX по всем позициям заказов."
     type: simple
     type_params:
       measure: tax_amount
       agg: sum
+    metadata:
+      tags:
+        - pricing
+        - tax
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT total_tax, order_year FROM semantic.total_tax GROUP BY order_year ORDER BY order_year"
+
+  # === Метрики конверсии и эффективности ===
+  
+  - name: fill_rate
+    description: "Доля завершенных заказов. Рассчитывается как отношение количества завершенных заказов к общему количеству заказов."
+    type: derived
+    type_params:
+      expr: orders_filled_count / order_count * 100
+      parents:
+        - name: orders_filled_count
+        - name: order_count
+    metadata:
+      tags:
+        - efficiency
+        - derived
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT fill_rate, order_year FROM semantic.fill_rate GROUP BY order_year ORDER BY order_year"
+
+  - name: discount_percentage
+    description: "Средний процент скидки. Рассчитывается как отношение общей суммы скидок к общей выручке."
+    type: derived
+    type_params:
+      expr: total_discount / total_revenue * 100
+      parents:
+        - name: total_discount
+        - name: total_revenue
+    metadata:
+      tags:
+        - pricing
+        - discount
+        - derived
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT discount_percentage, order_year FROM semantic.discount_percentage GROUP BY order_year ORDER BY order_year"
+
+  - name: tax_percentage
+    description: "Средний процент налога. Рассчитывается как отношение общей суммы налогов к общей выручке."
+    type: derived
+    type_params:
+      expr: total_tax / total_revenue * 100
+      parents:
+        - name: total_tax
+        - name: total_revenue
+    metadata:
+      tags:
+        - pricing
+        - tax
+        - derived
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT tax_percentage, order_year FROM semantic.tax_percentage GROUP BY order_year ORDER BY order_year"
+
+  # === Метрики по сегментам клиентов ===
+  
+  - name: revenue_by_customer_segment
+    description: "Выручка по сегменту клиентов. Агрегируется по сегменту клиента."
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      group_by:
+        - customer_segment
+    metadata:
+      tags:
+        - revenue
+        - customer
+        - segmentation
+      sensitivity: public
+      owner: marketing_team
+      examples:
+        - query: "SELECT revenue_by_customer_segment, customer_segment FROM semantic.revenue_by_customer_segment GROUP BY customer_segment"
+
+  - name: order_count_by_customer_segment
+    description: "Количество заказов по сегменту клиентов. Агрегируется по сегменту клиента."
+    type: simple
+    type_params:
+      measure: num_orders
+      agg: sum
+      group_by:
+        - customer_segment
+    metadata:
+      tags:
+        - order_count
+        - customer
+        - segmentation
+      sensitivity: public
+      owner: marketing_team
+      examples:
+        - query: "SELECT order_count_by_customer_segment, customer_segment FROM semantic.order_count_by_customer_segment GROUP BY customer_segment"
+
+  # === Метрики по времени года и сезонам ===
+  
+  - name: revenue_by_season
+    description: "Выручка по времени года. Агрегируется по времени года (Spring, Summer, Autumn, Winter)."
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      group_by:
+        - season
+    metadata:
+      tags:
+        - revenue
+        - season
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT revenue_by_season, season FROM semantic.revenue_by_season GROUP BY season"
+
+  - name: revenue_by_day_of_week
+    description: "Выручка по дням недели. Агрегируется по дню недели (1=Понедельник, 7=Воскресенье)."
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      group_by:
+        - day_of_week
+    metadata:
+      tags:
+        - revenue
+        - time
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT revenue_by_day_of_week, day_of_week FROM semantic.revenue_by_day_of_week GROUP BY day_of_week"
+
+  - name: revenue_by_half_year
+    description: "Выручка по полугодиям. Агрегируется по полугодию (H1, H2)."
+    type: simple
+    type_params:
+      measure: revenue
+      agg: sum
+      group_by:
+        - half_year
+    metadata:
+      tags:
+        - revenue
+        - time
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT revenue_by_half_year, half_year FROM semantic.revenue_by_half_year GROUP BY half_year"
+
+  # === Дополнительные метрики ===
+  
+  - name: avg_discount_per_order
+    description: "Средняя скидка на заказ. Рассчитывается как отношение общей суммы скидок к количеству заказов."
+    type: derived
+    type_params:
+      expr: total_discount / order_count
+      parents:
+        - name: total_discount
+        - name: order_count
+    metadata:
+      tags:
+        - pricing
+        - discount
+        - derived
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT avg_discount_per_order, order_year FROM semantic.avg_discount_per_order GROUP BY order_year ORDER BY order_year"
+
+  - name: avg_tax_per_order
+    description: "Средний налог на заказ. Рассчитывается как отношение общей суммы налогов к количеству заказов."
+    type: derived
+    type_params:
+      expr: total_tax / order_count
+      parents:
+        - name: total_tax
+        - name: order_count
+    metadata:
+      tags:
+        - pricing
+        - tax
+        - derived
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT avg_tax_per_order, order_year FROM semantic.avg_tax_per_order GROUP BY order_year ORDER BY order_year"
+
+  - name: avg_quantity_per_order
+    description: "Среднее количество товаров на заказ. Рассчитывается как отношение общего количества товаров к количеству заказов."
+    type: derived
+    type_params:
+      expr: total_quantity / order_count
+      parents:
+        - name: total_quantity
+        - name: order_count
+    metadata:
+      tags:
+        - quantity
+        - derived
+      sensitivity: public
+      owner: analytics_team
+      examples:
+        - query: "SELECT avg_quantity_per_order, order_year FROM semantic.avg_quantity_per_order GROUP BY order_year ORDER BY order_year"

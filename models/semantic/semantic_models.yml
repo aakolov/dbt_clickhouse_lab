@@ -1,11 +1,16 @@
 version: 2
 
 semantic_models:
+  # Агрегированная статистика по заказам
   - name: orders_analysis
     model: ref('f_orders_stats_dv')
-    description: "Агрегированная статистика по заказам для анализа"
+    description: "Агрегированная статистика по заказам для анализа. Данные агрегируются по году, статусу и приоритету заказа."
+    
+    # Основное время для агрегации
     defaults:
       agg_time: O_ORDERDATE
+    
+    # Описания измерений с тегами для категоризации
     dimensions:
       - name: order_year
         expr: O_ORDERYEAR
@@ -13,28 +18,96 @@ semantic_models:
         type: time
         type_params:
           time_granularity: year
+        metadata:
+          tags:
+            - time_dimension
+            - year
+          sensitivity: public
+          owner: analytics_team
+      
       - name: order_status
         expr: O_ORDERSTATUS
-        description: "Статус заказа"
+        description: "Статус заказа (O=Open, F=Filled, P=Pending)"
         type: categorical
+        metadata:
+          tags:
+            - order
+            - status
+          sensitivity: public
+          owner: analytics_team
+      
       - name: order_priority
         expr: O_ORDERPRIORITY
-        description: "Приоритет заказа"
+        description: "Приоритет заказа (1-URGENT, 2-HIGH, 3-MEDIUM, 4-NOT SPECIFIED, 5-LOW)"
         type: categorical
+        metadata:
+          tags:
+            - order
+            - priority
+          sensitivity: public
+          owner: analytics_team
+    
+    # Метрики (измерения)
     measures:
       - name: num_orders
         expr: num_orders
         agg: sum
+        description: "Количество заказов"
+        metadata:
+          tags:
+            - core
+            - order_count
+          sensitivity: public
+          owner: analytics_team
+      
       - name: num_customers
         expr: num_customers
         agg: sum
+        description: "Количество уникальных заказчиков"
+        metadata:
+          tags:
+            - core
+            - customer_count
+          sensitivity: public
+          owner: analytics_team
+      
       - name: revenue
         expr: revenue
         agg: sum
+        description: "Общая выручка от заказов (сумма L_EXTENDEDPRICE * (1 - L_DISCOUNT))"
+        metadata:
+          tags:
+            - core
+            - revenue
+          sensitivity: public
+          owner: analytics_team
+    
+    # Связи с другими semantic models
+    relationships:
+      - name: orders_to_calendar
+        direction: many_to_one
+        to: calendar
+        type: left
+        condition: orders_analysis.order_year = calendar.year
+    
+    # Метаданные модели
+    metadata:
+      tags:
+        - aggregation
+        - reporting
+      sensitivity: public
+      owner: analytics_team
 
+  # Детальная информация о позициях заказов
   - name: lineitem_details
     model: ref('f_lineorder_flat_dv')
-    description: "Детальная информация о позициях заказов"
+    description: "Детальная информация о позициях заказов. Содержит все поля из таблиц lineitem, orders, customer, supplier и part."
+    
+    # Основное время для агрегации
+    defaults:
+      agg_time: O_ORDERDATE
+    
+    # Описания измерений
     dimensions:
       - name: order_date
         expr: O_ORDERDATE
@@ -42,189 +115,557 @@ semantic_models:
         type: time
         type_params:
           time_granularity: day
+        metadata:
+          tags:
+            - time_dimension
+            - order_date
+          sensitivity: public
+          owner: analytics_team
+      
       - name: return_flag
         expr: L_RETURNFLAG
-        description: "Флаг возврата"
+        description: "Флаг возврата (R=Возвращен, N=Не возвращен)"
         type: categorical
+        metadata:
+          tags:
+            - lineitem
+            - return
+          sensitivity: public
+          owner: analytics_team
+      
       - name: line_status
         expr: L_LINESTATUS
-        description: "Статус позиции"
+        description: "Статус позиции (F=Завершена, O=В процессе)"
         type: categorical
+        metadata:
+          tags:
+            - lineitem
+            - status
+          sensitivity: public
+          owner: analytics_team
+      
       - name: ship_mode
         expr: L_SHIPMODE
-        description: "Способ доставки"
+        description: "Способ доставки (AIR, TRUCK, REG AIR, MAIL, SHIP, PIPE, FOB, PUSH)"
         type: categorical
+        metadata:
+          tags:
+            - logistics
+            - shipping
+          sensitivity: public
+          owner: logistics_team
+    
+    # Метрики
     measures:
       - name: quantity
         expr: L_QUANTITY
         agg: sum
+        description: "Количество заказанных товаров"
+        metadata:
+          tags:
+            - core
+            - quantity
+          sensitivity: public
+          owner: analytics_team
+      
       - name: extended_price
         expr: L_EXTENDEDPRICE
         agg: sum
+        description: "Расчетная цена (L_EXTENDEDPRICE = L_QUANTITY * P_RETAILPRICE)"
+        metadata:
+          tags:
+            - core
+            - pricing
+          sensitivity: public
+          owner: analytics_team
+      
       - name: discount_amount
         expr: L_EXTENDEDPRICE * L_DISCOUNT
         agg: sum
+        description: "Сумма скидки (L_EXTENDEDPRICE * L_DISCOUNT)"
+        metadata:
+          tags:
+            - pricing
+            - discount
+          sensitivity: public
+          owner: analytics_team
+      
       - name: tax_amount
         expr: L_TAX
         agg: sum
+        description: "Сумма налога (L_TAX)"
+        metadata:
+          tags:
+            - pricing
+            - tax
+          sensitivity: public
+          owner: analytics_team
+    
+    # Связи с другими semantic models
+    relationships:
+      - name: lineitem_to_calendar
+        direction: many_to_one
+        to: calendar
+        type: left
+        condition: lineitem_details.order_date = calendar.date_day
+    
+    # Метаданные модели
+    metadata:
+      tags:
+        - detail
+        - lineitem
+      sensitivity: public
+      owner: analytics_team
 
+  # История изменений данных клиентов
   - name: customer_history
     model: ref('sat_customer_details')
-    description: "История изменений данных клиентов"
+    description: "История изменений данных клиентов. Содержит историю обновлений данных клиентов с датой загрузки."
+    
+    # Основное время для агрегации
+    defaults:
+      agg_time: LOAD_DATE
+    
+    # Описания измерений
     dimensions:
       - name: load_date
         expr: LOAD_DATE
-        description: "Дата загрузки"
+        description: "Дата и время загрузки изменений данных"
         type: time
         type_params:
           time_granularity: day
+        metadata:
+          tags:
+            - time_dimension
+            - audit
+          sensitivity: public
+          owner: analytics_team
+      
       - name: customer_name
         expr: C_NAME
         description: "Имя клиента"
+        type: categorical
+        metadata:
+          tags:
+            - customer
+            - personal
+          sensitivity: internal
+          owner: analytics_team
+      
       - name: customer_address
         expr: C_ADDRESS
         description: "Адрес клиента"
+        type: categorical
+        metadata:
+          tags:
+            - customer
+            - address
+          sensitivity: internal
+          owner: analytics_team
+      
       - name: customer_segment
         expr: C_MKTSEGMENT
-        description: "Сегмент клиента"
+        description: "Сегмент клиента (AUTOMOBILE, BUILDING, FURNITURE, HOUSEHOLD, MACHINERY)"
         type: categorical
+        metadata:
+          tags:
+            - customer
+            - segmentation
+          sensitivity: public
+          owner: marketing_team
+    
+    # Метрики
     measures:
       - name: is_active
         expr: 1
         agg: max
+        description: "Флаг активной записи (всегда 1 для текущих записей)"
+        metadata:
+          tags:
+            - status
+          sensitivity: public
+          owner: analytics_team
+    
+    # Связи с другими semantic models
+    relationships:
+      - name: customer_history_to_calendar
+        direction: many_to_one
+        to: calendar
+        type: left
+        condition: customer_history.load_date = calendar.date_day
+    
+    # Метаданные модели
+    metadata:
+      tags:
+        - history
+        - customer
+        - satellite
+      sensitivity: public
+      owner: analytics_team
 
+  # История изменений данных заказов
   - name: order_history
     model: ref('sat_order_details')
-    description: "История изменений данных заказов"
+    description: "История изменений данных заказов. Содержит историю обновлений данных заказов с датой загрузки."
+    
+    # Основное время для агрегации
+    defaults:
+      agg_time: LOAD_DATE
+    
+    # Описания измерений
     dimensions:
       - name: load_date
         expr: LOAD_DATE
-        description: "Дата загрузки"
+        description: "Дата и время загрузки изменений данных"
         type: time
         type_params:
           time_granularity: day
+        metadata:
+          tags:
+            - time_dimension
+            - audit
+          sensitivity: public
+          owner: analytics_team
+      
       - name: order_status
         expr: O_ORDERSTATUS
-        description: "Статус заказа"
+        description: "Статус заказа (O=Open, F=Filled, P=Pending)"
         type: categorical
+        metadata:
+          tags:
+            - order
+            - status
+          sensitivity: public
+          owner: analytics_team
+      
       - name: order_priority
         expr: O_ORDERPRIORITY
-        description: "Приоритет заказа"
+        description: "Приоритет заказа (1-URGENT, 2-HIGH, 3-MEDIUM, 4-NOT SPECIFIED, 5-LOW)"
         type: categorical
+        metadata:
+          tags:
+            - order
+            - priority
+          sensitivity: public
+          owner: analytics_team
+    
+    # Метрики
     measures:
       - name: order_total_price
         expr: O_TOTALPRICE
         agg: sum
+        description: "Общая цена заказа"
+        metadata:
+          tags:
+            - pricing
+            - order
+          sensitivity: public
+          owner: analytics_team
+    
+    # Связи с другими semantic models
+    relationships:
+      - name: order_history_to_calendar
+        direction: many_to_one
+        to: calendar
+        type: left
+        condition: order_history.load_date = calendar.date_day
+    
+    # Метаданные модели
+    metadata:
+      tags:
+        - history
+        - order
+        - satellite
+      sensitivity: public
+      owner: analytics_team
 
+  # Унифицированный календарь для временных измерений
   - name: calendar
     model: ref('dim_calendar')
-    description: "Унифицированный календарь для временных измерений"
+    description: "Унифицированный календарь для временных измерений. Генерируется автоматически с 2010 по 2030 год."
+    
+    # Основное время для агрегации
+    defaults:
+      agg_time: date_day
+    
+    # Описания измерений
     dimensions:
       - name: date_day
         expr: date_day
-        description: "Дата"
+        description: "Дата (день)"
         type: time
         type_params:
           time_granularity: day
+        metadata:
+          tags:
+            - time_dimension
+            - base
+          sensitivity: public
+          owner: analytics_team
+      
       - name: year
         expr: year
         description: "Год"
         type: time
         type_params:
           time_granularity: year
+        metadata:
+          tags:
+            - time_dimension
+            - year
+          sensitivity: public
+          owner: analytics_team
+      
       - name: month
         expr: month
         description: "Месяц"
         type: time
         type_params:
           time_granularity: month
+        metadata:
+          tags:
+            - time_dimension
+            - month
+          sensitivity: public
+          owner: analytics_team
+      
       - name: quarter
         expr: quarter
         description: "Квартал"
         type: time
         type_params:
           time_granularity: quarter
+        metadata:
+          tags:
+            - time_dimension
+            - quarter
+          sensitivity: public
+          owner: analytics_team
+      
       - name: week_of_year
         expr: week_of_year
-        description: "Неделя года"
+        description: "Неделя года (1-53)"
         type: time
         type_params:
           time_granularity: week
+        metadata:
+          tags:
+            - time_dimension
+            - week
+          sensitivity: public
+          owner: analytics_team
+      
       - name: day_of_week
         expr: day_of_week
-        description: "День недели"
+        description: "День недели (1=Понедельник, 7=Воскресенье)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - day
+          sensitivity: public
+          owner: analytics_team
+      
       - name: season
         expr: season
-        description: "Время года"
+        description: "Время года (Spring, Summer, Autumn, Winter)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - season
+          sensitivity: public
+          owner: analytics_team
+      
       - name: half_year
         expr: half_year
-        description: "Полугодие"
+        description: "Полугодие (H1, H2)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - half_year
+          sensitivity: public
+          owner: analytics_team
+      
       - name: is_weekend
         expr: is_weekend
-        description: "Выходной день"
+        description: "Выходной день (true/false)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - weekend
+          sensitivity: public
+          owner: analytics_team
+      
       - name: is_business_day
         expr: is_business_day
-        description: "Рабочий день"
+        description: "Рабочий день (true/false)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - business
+          sensitivity: public
+          owner: analytics_team
+      
       - name: is_holiday
         expr: is_holiday
-        description: "Праздничный день"
+        description: "Праздничный день (true/false)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - holiday
+          sensitivity: public
+          owner: analytics_team
+      
       - name: month_start
         expr: month_start
         description: "Начало месяца"
         type: time
         type_params:
           time_granularity: month
+        metadata:
+          tags:
+            - time_dimension
+            - month_start
+          sensitivity: public
+          owner: analytics_team
+      
       - name: quarter_start
         expr: quarter_start
         description: "Начало квартала"
         type: time
         type_params:
           time_granularity: quarter
+        metadata:
+          tags:
+            - time_dimension
+            - quarter_start
+          sensitivity: public
+          owner: analytics_team
+      
       - name: quarter_name
         expr: quarter_name
-        description: "Название квартала"
+        description: "Название квартала (2024-Q1, 2024-Q2 и т.д.)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - quarter
+          sensitivity: public
+          owner: analytics_team
+      
       - name: week_start
         expr: week_start
         description: "Начало недели"
         type: time
         type_params:
           time_granularity: week
+        metadata:
+          tags:
+            - time_dimension
+            - week_start
+          sensitivity: public
+          owner: analytics_team
+      
       - name: day_of_year
         expr: day_of_year
-        description: "Номер дня в году"
+        description: "Номер дня в году (1-366)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - day_of_year
+          sensitivity: public
+          owner: analytics_team
+      
       - name: date_key
         expr: date_key
-        description: "Ключ даты (YYYY-MM-DD)"
+        description: "Ключ даты в формате YYYY-MM-DD"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - key
+          sensitivity: public
+          owner: analytics_team
+      
       - name: date_formatted
         expr: date_formatted
         description: "Форматированная дата (ДД.ММ.ГГГГ)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - formatted
+          sensitivity: public
+          owner: analytics_team
+      
       - name: month_year
         expr: month_year
-        description: "Месяц и год"
+        description: "Месяц и год (Month YYYY)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - month_year
+          sensitivity: public
+          owner: analytics_team
+      
       - name: quarter_year
         expr: quarter_year
-        description: "Квартал и год"
+        description: "Квартал и год (Q1 Quarter YYYY)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - quarter_year
+          sensitivity: public
+          owner: analytics_team
+      
       - name: is_christmas_season
         expr: is_christmas_season
-        description: "Рождественский сезон"
+        description: "Рождественский сезон (декабрь)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - season
+          sensitivity: public
+          owner: analytics_team
+      
       - name: is_january_buying_season
         expr: is_january_buying_season
         description: "Январский сезон распродаж"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - season
+          sensitivity: public
+          owner: analytics_team
+      
       - name: quarter_short
         expr: quarter_short
-        description: "Короткое название квартала"
+        description: "Короткое название квартала (Q1, Q2, Q3, Q4)"
         type: categorical
+        metadata:
+          tags:
+            - time_dimension
+            - quarter
+          sensitivity: public
+          owner: analytics_team
+    
+    # Связей для календаря нет - он является базовой таблицей для других моделей
+    
+    # Метаданные модели
+    metadata:
+      tags:
+        - reference
+        - calendar
+        - time
+      sensitivity: public
+      owner: analytics_team
