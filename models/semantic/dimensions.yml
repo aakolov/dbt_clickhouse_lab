@@ -457,10 +457,10 @@ dimensions:
     description: "Иерархия даты загрузки. Позволяет переключаться между уровнями детализации: год -> квартал -> месяц -> день. Используется в customer_history и order_history для анализа исторических данных."
     type: hierarchy
     sql:
-      year: toYear(LAST_UPDATE_DATE)
-      quarter: toQuarter(LAST_UPDATE_DATE)
-      month: toMonth(LAST_UPDATE_DATE)
-      day: toDayOfMonth(LAST_UPDATE_DATE)
+      year: toYear(LOAD_DATE)
+      quarter: toQuarter(LOAD_DATE)
+      month: toMonth(LOAD_DATE)
+      day: toDayOfMonth(LOAD_DATE)
     references:
       - semantic_model: customer_history
         dimension: load_date_hierarchy
