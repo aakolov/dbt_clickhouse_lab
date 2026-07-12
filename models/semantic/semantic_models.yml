@@ -220,16 +220,38 @@ semantic_models:
           sensitivity: public
           owner: logistics_team
       
-      - name: line_comment
-        expr: L_COMMENT
-        description: "Комментарий к позиции"
-        type: categorical
-        metadata:
-          tags:
-            - lineitem
-            - comment
-          sensitivity: internal
-          owner: analytics_team
+       - name: line_comment
+         expr: L_COMMENT
+         description: "Комментарий к позиции"
+         type: categorical
+         metadata:
+           tags:
+             - lineitem
+             - comment
+           sensitivity: internal
+           owner: analytics_team
+       
+       - name: product_type
+         expr: P_TYPE
+         description: "Тип товара. Описывает характеристики товара (например, 'STANDARD', 'ECONOMY', 'PREMIUM')."
+         type: categorical
+         metadata:
+           tags:
+             - product
+             - reference
+           sensitivity: public
+           owner: analytics_team
+       
+       - name: product_size
+         expr: P_SIZE
+         description: "Размер товара. Числовое значение размера товара (от 1 до 50)."
+         type: categorical
+         metadata:
+           tags:
+             - product
+             - reference
+           sensitivity: public
+           owner: analytics_team
     
     # Метрики
     measures:
@@ -362,6 +384,14 @@ semantic_models:
         expr: 1
         agg: max
         description: "Флаг активной записи (всегда 1 для текущих записей)"
+      
+      - name: load_date_hierarchy
+        expr: LOAD_DATE
+        agg: max
+        description: "Иерархия даты загрузки для customer_history"
+        type: time
+        type_params:
+          time_granularity: day
         metadata:
           tags:
             - status
@@ -460,6 +490,67 @@ semantic_models:
         - satellite
       sensitivity: public
       owner: analytics_team
+
+  # Иерархия даты загрузки (для order_history)
+  - name: load_date_hierarchy
+    model: ref('sat_order_details')
+    description: "Иерархия даты загрузки. Позволяет переключаться между уровнями детализации: год -> квартал -> месяц -> день. Используется в order_history для анализа исторических данных."
+    
+    defaults:
+      agg_time: LOAD_DATE
+    
+    dimensions:
+      - name: load_date
+        expr: LOAD_DATE
+        description: "Дата и время загрузки"
+        type: time
+        type_params:
+          time_granularity: day
+        metadata:
+          tags:
+            - time_dimension
+            - hierarchy
+          sensitivity: internal
+          owner: analytics_team
+      
+      - name: load_year
+        expr: toYear(LOAD_DATE)
+        description: "Год загрузки"
+        type: time
+        type_params:
+          time_granularity: year
+        metadata:
+          tags:
+            - time_dimension
+            - hierarchy
+          sensitivity: internal
+          owner: analytics_team
+      
+      - name: load_quarter
+        expr: toQuarter(LOAD_DATE)
+        description: "Квартал загрузки"
+        type: time
+        type_params:
+          time_granularity: quarter
+        metadata:
+          tags:
+            - time_dimension
+            - hierarchy
+          sensitivity: internal
+          owner: analytics_team
+      
+      - name: load_month
+        expr: toMonth(LOAD_DATE)
+        description: "Месяц загрузки"
+        type: time
+        type_params:
+          time_granularity: month
+        metadata:
+          tags:
+            - time_dimension
+            - hierarchy
+          sensitivity: internal
+          owner: analytics_team
 
   # Унифицированный календарь для временных измерений
   - name: calendar
