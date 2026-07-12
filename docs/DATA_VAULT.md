@@ -4,6 +4,8 @@
 
 This document describes the Data Vault 2.0 implementation for the dbt-clickhouse project. Data Vault is a methodology for building enterprise data warehouses that emphasizes flexibility, scalability, and auditability.
 
+The implementation is part of a unified architecture with the dbt Semantic Layer for BI tools.
+
 ## Architecture
 
 ### Core Components
@@ -20,10 +22,10 @@ Hubs contain business keys and serve as the integration point for different syst
 
 | Hub | Business Key | Description |
 |-----|--------------|-------------|
-| `hub_customer` | `CUSTOMER_ID` | Customer identifier |
-| `hub_order` | `ORDER_ID` | Order identifier |
-| `hub_part` | `PART_ID` | Part identifier |
-| `hub_supplier` | `SUPPLIER_ID` | Supplier identifier |
+| `hub_customer` | `C_CUSTKEY` | Customer identifier |
+| `hub_order` | `O_ORDERKEY` | Order identifier |
+| `hub_part` | `L_PARTKEY` | Part identifier |
+| `hub_supplier` | `L_SUPPKEY` | Supplier identifier |
 
 ### Links
 
@@ -38,13 +40,77 @@ Links represent business processes and connect hubs.
 
 Satellites store descriptive attributes with history tracking.
 
-| Satellite | Hub | Description |
-|-----------|-----|-------------|
-| `sat_customer_details` | `hub_customer` | Customer attributes (name, address, phone, etc.) |
-| `sat_order_details` | `hub_order` | Order attributes (status, price, date, etc.) |
+| Satellite | Hub/Link | Description |
+|-----------|----------|-------------|
+| `sat_customer_details` | `hub_customer` | Customer attributes (name, address, phone, segment, etc.) |
+| `sat_order_details` | `hub_order` | Order attributes (status, price, date, priority, etc.) |
 | `sat_lineitem_details` | `link_order_lineitem` | Line item attributes (quantity, price, dates, etc.) |
 | `sat_part_details` | `hub_part` | Part attributes (name, type, size, etc.) |
 | `sat_supplier_details` | `hub_supplier` | Supplier attributes (name, address, phone, etc.) |
+
+## Semantic Layer Integration
+
+The Data Vault layer serves as the foundation for the dbt Semantic Layer:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    BI Layer (Tableau/Metabase)                      │
+│                    Uses dbt Semantic Layer                          │
+└─────────────────────────────────────────────────────────────────────┘
+                               ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│              Semantic Layer (single source of truth)                │
+│                    metrics.yml + semantic_models.yml                │
+│  - Unified definitions                                              │
+│  - Consistent naming                                                │
+│  - Centralized documentation                                        │
+└─────────────────────────────────────────────────────────────────────┘
+                               ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Data Mart Layer                                │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  f_orders_stats (aggregated, optimized for reporting)         │  │
+│  │  f_orders_stats_dv (Data Vault-based view)                    │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+                               ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                  Core Data Store (Data Vault 2.0)                   │
+│  Hubs (business keys)                                               │
+│  Links (relationships)                                              │
+│  Satellites (history + attributes)                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                               ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Staging Layer                                │
+│  stg_orders, stg_customer, stg_part, stg_supplier, stg_lineitem    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Semantic Models
+
+The semantic layer is built on top of Data Vault satellites:
+
+| Semantic Model | Source | Description |
+|----------------|--------|-------------|
+| `orders_analysis` | `sat_order_details` | Detailed order information with history |
+| `lineitem_details` | `sat_lineitem_details` | Detailed line item information |
+| `customer_history` | `sat_customer_details` | Customer history with segment |
+| `order_history` | `sat_order_details` | Order history with status/priority |
+| `calendar` | `dim_calendar` | Unified calendar with time dimensions |
+
+### Measures
+
+Measures are defined in semantic models and used by metrics:
+
+| Measure | Semantic Model | Description |
+|---------|----------------|-------------|
+| `quantity` | `lineitem_details` | SUM(L_QUANTITY) |
+| `extended_price` | `lineitem_details` | SUM(L_EXTENDEDPRICE) |
+| `discount_amount` | `lineitem_details` | SUM(L_EXTENDEDPRICE * L_DISCOUNT) |
+| `tax_amount` | `lineitem_details` | SUM(L_TAX) |
+
+## Implementation Details
 
 ## Implementation Details
 
@@ -147,8 +213,10 @@ The implementation includes views for backward compatibility with existing star 
 
 | Data Vault View | Original Model | Description |
 |-----------------|----------------|-------------|
-| `f_lineorder_flat_dv` | `f_lineorder_flat` | Wide table for reporting |
+| `f_lineorder_flat_dv` | `f_lineorder_flat` | Wide table for reporting (legacy deleted) |
 | `f_orders_stats_dv` | `f_orders_stats` | Aggregated statistics |
+
+**Note:** Legacy models `f_lineorder_flat` and `f_orders_stats` (old version) have been removed. Use Data Vault-based views for backward compatibility.
 
 ### Using Backward Compatible Views
 
@@ -158,6 +226,25 @@ SELECT * FROM {{ ref('f_lineorder_flat_dv') }}
 
 # Run tests on the Data Vault model
 dbt test -s f_orders_stats_dv
+```
+
+### Migration to Semantic Layer
+
+For new reporting, use the dbt Semantic Layer instead of Data Vault views:
+
+```yaml
+# metrics.yml
+- name: total_revenue
+  description: "Общая выручка от продаж"
+  type: simple
+  type_params:
+    measure: revenue
+    agg: sum
+```
+
+```sql
+-- Use semantic layer via BI tool or dbt run
+SELECT total_revenue, order_year FROM semantic.total_revenue GROUP BY order_year
 ```
 
 ## Benefits

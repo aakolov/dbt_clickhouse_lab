@@ -4,6 +4,7 @@
 - Deploy Infrastructure as Code with [Terraform](https://www.terraform.io/) and [Yandex.Cloud](https://cloud.yandex.com/en-ru/)
 - Instant development with [Github Codespaces](https://docs.github.com/en/codespaces)
 - Assignment checks with [Github Actions](https://github.com/features/actions)
+- Unified semantic layer with [dbt Semantic Layer](https://docs.getdbt.com/docs/core/new Semantic-Layer)
 
 ## Lab plan
 
@@ -28,6 +29,9 @@
 - [Model read-optimized Data Mart](#5-model-read-optimized-data-mart):
     - Turn SQL code into dbt model [f_orders_stats](./models/marts/f_orders_stats.sql)
     - Open PR and trigger automated testing with Github Actions
+- [Data Vault Implementation](#6-data-vault-implementation)
+- [Semantic Layer Implementation](#7-semantic-layer-implementation)
+- [Create PR and make CI tests pass](#8-create-pr-and-make-ci-tests-pass)
 - [Delete cloud resources](#delete-cloud-resources)
 
 ## 1. Configure Developer Environment
@@ -242,8 +246,6 @@ Make sure the tests pass:
 dbt build -s f_orders_stats
 ```
 
-![](./docs/f_orders_stats.png)
-
 ## 6. Data Vault Implementation
 
 This project includes a Data Vault 2.0 implementation for enhanced flexibility and auditability.
@@ -273,14 +275,91 @@ dbt run --models 'tag:satellite'
 
 Data Vault models include views for backward compatibility:
 
-- `f_lineorder_flat_dv` - Wide table for reporting
+- `f_lineorder_flat_dv` - Wide table for reporting (legacy f_lineorder_flat deleted)
 - `f_orders_stats_dv` - Aggregated statistics
 
 ### Documentation
 
 See [docs/DATA_VAULT.md](./docs/DATA_VAULT.md) for detailed documentation.
 
-## 7. Create PR and make CI tests pass
+## 7. Semantic Layer Implementation
+
+This project implements a unified semantic layer based on dbt Semantic Layer.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    BI Layer (Tableau/Metabase)                      │
+│                    Uses dbt Semantic Layer                          │
+└─────────────────────────────────────────────────────────────────────┘
+                               ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│              Semantic Layer (single source of truth)                │
+│                    metrics.yml + semantic_models.yml                │
+│  - Unified definitions                                              │
+│  - Consistent naming                                                │
+│  - Centralized documentation                                        │
+└─────────────────────────────────────────────────────────────────────┘
+                               ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Data Mart Layer                                │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  f_orders_stats (aggregated, optimized for reporting)         │  │
+│  │  f_orders_stats_dv (Data Vault-based view)                    │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+                               ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                  Core Data Store (Data Vault 2.0)                   │
+│  Hubs (business keys)                                               │
+│  Links (relationships)                                              │
+│  Satellites (history + attributes)                                  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Core Components
+
+**Semantic Models:**
+- `orders_analysis` - Detailed order information from `sat_order_details`
+- `lineitem_details` - Detailed line item information from `sat_lineitem_details`
+- `customer_history` - Customer history from `sat_customer_details`
+- `order_history` - Order history from `sat_order_details`
+- `calendar` - Unified calendar with time dimensions
+
+**Metrics:**
+- Core metrics: `total_revenue`, `order_count`, `customer_count`, `avg_order_value`
+- Breakdown metrics: `revenue_by_status`, `revenue_by_priority`, `revenue_by_ship_mode`, etc.
+- Derived metrics: `fill_rate_percentage`, `discount_percentage`, `tax_percentage`
+- Time series: `yearly_revenue_growth_rate`, `monthly_revenue_growth_rate`
+
+### Running Semantic Layer
+
+```bash
+# Verify metrics are valid
+dbt validate-metrics
+
+# Generate semantic layer metadata
+dbt ls -s semantic_layer
+
+# Run dbt Semantic Layer
+dbt run-operation dbt_semantic_layer.implement
+```
+
+### Adding New Metrics
+
+1. Add metric definition to [models/semantic/metrics.yml](./models/semantic/metrics.yml)
+2. Define measure in [semantic_models.yml](./models/semantic/semantic_models.yml) if needed
+3. Test metric:
+   ```bash
+   dbt test -m <metric_name>
+   ```
+
+### Documentation
+
+See [docs/SEMANTIC_LAYER.md](./docs/SEMANTIC_LAYER.md) for detailed documentation.
+
+## 9. Create PR and make CI tests pass
 
 If it works from your terminal, commit, open PR and trigger automated testing with Github Actions
 
