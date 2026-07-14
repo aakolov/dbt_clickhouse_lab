@@ -1,6 +1,85 @@
 version: 2
 
 models:
+  - name: stg_customer
+    description: "Стейдинг-модель для данных клиентов"
+    meta:
+      data_quality:
+        owner: analytics_team
+        classification: internal
+        description: "Стейдинг-модель для данных клиентов"
+      data_governance:
+        owner: analytics_team
+        classification: internal
+        pii: false
+        sensitive: false
+    columns:
+      - name: c_custkey
+        description: "Ключ клиента"
+        tests:
+          - unique
+          - not_null
+        meta:
+          data_governance:
+            classification: internal
+            pii: true
+      - name: c_name
+        description: "Имя клиента"
+        tests:
+          - not_null
+        meta:
+          data_governance:
+            classification: internal
+            pii: true
+      - name: c_address
+        description: "Адрес клиента"
+        tests:
+          - not_null
+        meta:
+          data_governance:
+            classification: internal
+            pii: true
+      - name: c_nationkey
+        description: "Ключ страны"
+        tests:
+          - not_null
+        meta:
+          data_governance:
+            classification: internal
+            pii: false
+      - name: c_phone
+        description: "Телефон клиента"
+        tests:
+          - not_null
+        meta:
+          data_governance:
+            classification: internal
+            pii: true
+      - name: c_acctbal
+        description: "Баланс счета клиента"
+        tests:
+          - not_null
+        meta:
+          data_governance:
+            classification: internal
+            pii: false
+      - name: c_mktsegment
+        description: "Сегмент рынка"
+        tests:
+          - not_null
+        meta:
+          data_governance:
+            classification: internal
+            pii: false
+      - name: c_comment
+        description: "Комментарий клиента"
+        tests:
+          - not_null
+        meta:
+          data_governance:
+            classification: internal
+            pii: false
+
   - name: dim_calendar
     description: "Унифицированное временное измерение для анализа по датам"
     columns:

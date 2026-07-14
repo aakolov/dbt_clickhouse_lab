@@ -1,8 +1,11 @@
--- Data Vault based view for backward compatibility with f_orders_stats
--- This view aggregates data by order year, status, and priority
+-- Data Vault based materialized table for backward compatibility with f_orders_stats
+-- This table aggregates data by order year, status, and priority
 
 {{ config(
-    materialized='view'
+    materialized='table',
+    engine='MergeTree()',
+    order_by=['O_ORDERYEAR', 'O_ORDERSTATUS', 'O_ORDERPRIORITY'],
+    partition_by='toYear(O_ORDERYEAR)'
 ) }}
 
 SELECT

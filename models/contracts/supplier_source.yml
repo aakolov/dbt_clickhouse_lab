@@ -1,0 +1,41 @@
+contract:
+  version: 1.0
+  source: tpch.supplier
+  description: "Supplier data from TPC-H"
+  fields:
+    - name: S_SUPPKEY
+      type: UInt32
+      nullable: false
+      description: "Supplier key"
+    - name: S_NAME
+      type: String
+      nullable: false
+      description: "Supplier name"
+    - name: S_ADDRESS
+      type: String
+      nullable: false
+      description: "Supplier address"
+    - name: S_NATIONKEY
+      type: UInt32
+      nullable: false
+      description: "Nation key"
+    - name: S_PHONE
+      type: String
+      nullable: false
+      description: "Phone number"
+    - name: S_ACCTBAL
+      type: Decimal(15,2)
+      nullable: false
+      description: "Account balance"
+    - name: S_COMMENT
+      type: String
+      nullable: false
+      description: "Comment"
+  validations:
+    - type: unique
+      fields: [S_SUPPKEY]
+    - type: not_null
+      fields: [S_SUPPKEY, S_NAME, S_ADDRESS, S_PHONE]
+    - type: foreign_key
+      field: S_NATIONKEY
+      reference: tpch.nation.N_NATIONKEY

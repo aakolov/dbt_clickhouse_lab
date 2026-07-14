@@ -1,12 +1,13 @@
 {{
     config(
+        materialized='table',
         engine='MergeTree()',
-        order_by=['ORDER_HK', 'LOAD_DATE'],
+        order_by=['O_ORDERKEY', 'O_CUSTKEY'],
         partition_by='toYear(O_ORDERDATE)'
     )
 }}
 
-SELECT DISTINCT
+SELECT
     md5(toString(O_ORDERKEY)) AS ORDER_HK,
     now() AS LOAD_DATE,
     O_ORDERKEY,
