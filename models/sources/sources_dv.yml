@@ -1,0 +1,83 @@
+version: 2
+
+sources:
+
+    - name: dbgen
+      schema: default
+      tags: ["dbgen"]
+      loader: S3
+      description: "TPCH synthetic data stored in S3"
+
+      tables:
+
+        - name: customer
+          description: "Customers dimension"
+          identifier: src_customer
+
+        - name: orders
+          description: "Orders facts"
+          identifier: src_orders
+
+        - name: lineitem
+          description: "Orders line items facts"
+          identifier: src_lineitem
+
+        - name: part
+          description: "Parts dimension"
+          identifier: src_part
+
+        - name: supplier
+          description: "Suppliers dimension"
+          identifier: src_supplier
+
+    - name: datavault
+      schema: default
+      tags: ["datavault"]
+      loader: dbt
+      description: "Data Vault 2.0 models built from TPCH sources"
+
+      tables:
+
+        - name: hub_customer
+          description: "Customer hub - business key for customers"
+          identifier: hub_customer
+
+        - name: hub_order
+          description: "Order hub - business key for orders"
+          identifier: hub_order
+
+        - name: hub_part
+          description: "Part hub - business key for parts"
+          identifier: hub_part
+
+        - name: hub_supplier
+          description: "Supplier hub - business key for suppliers"
+          identifier: hub_supplier
+
+        - name: link_order_customer
+          description: "Link between orders and customers"
+          identifier: link_order_customer
+
+        - name: link_order_lineitem
+          description: "Link between orders, parts, and suppliers"
+          identifier: link_order_lineitem
+
+        - name: sat_customer_details
+          description: "Satellite with customer attributes"
+          identifier: sat_customer_details
+
+        - name: sat_order_details
+          description: "Satellite with order attributes"
+          identifier: sat_order_details
+
+        - name: sat_lineitem_details
+          description: "Satellite with lineitem attributes"
+          identifier: sat_lineitem_details
+
+        - name: sat_part_details
+          description: "Satellite with part attributes"
+          identifier: sat_part_details
+
+        - name: sat_supplier_details
+          description: "Satellite with supplier attributes"
+          identifier: sat_supplier_details

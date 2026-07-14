@@ -1,0 +1,49 @@
+contract:
+  version: 1.0
+  source: tpch.orders
+  description: "Orders data from TPC-H"
+  fields:
+    - name: O_ORDERKEY
+      type: UInt64
+      nullable: false
+      description: "Order key"
+    - name: O_CUSTKEY
+      type: UInt32
+      nullable: false
+      description: "Customer key"
+    - name: O_ORDERSTATUS
+      type: LowCardinality(String)
+      nullable: false
+      description: "Order status"
+    - name: O_TOTALPRICE
+      type: Decimal(15,2)
+      nullable: false
+      description: "Total price"
+    - name: O_ORDERDATE
+      type: Date
+      nullable: false
+      description: "Order date"
+    - name: O_ORDERPRIORITY
+      type: LowCardinality(String)
+      nullable: false
+      description: "Order priority"
+    - name: O_CLERK
+      type: String
+      nullable: false
+      description: "Clerk"
+    - name: O_SHIPPRIORITY
+      type: UInt32
+      nullable: false
+      description: "Ship priority"
+    - name: O_COMMENT
+      type: String
+      nullable: false
+      description: "Comment"
+  validations:
+    - type: unique
+      fields: [O_ORDERKEY]
+    - type: not_null
+      fields: [O_ORDERKEY, O_CUSTKEY, O_TOTALPRICE, O_ORDERDATE]
+    - type: foreign_key
+      field: O_CUSTKEY
+      reference: tpch.customer.C_CUSTKEY

@@ -1,0 +1,83 @@
+contract:
+  version: 1.0
+  source: tpch.lineitem
+  description: "Lineitem data from TPC-H"
+  fields:
+    - name: L_ORDERKEY
+      type: UInt64
+      nullable: false
+      description: "Order key"
+    - name: L_PARTKEY
+      type: UInt32
+      nullable: false
+      description: "Part key"
+    - name: L_SUPPKEY
+      type: UInt32
+      nullable: false
+      description: "Supplier key"
+    - name: L_LINENUMBER
+      type: UInt32
+      nullable: false
+      description: "Line number"
+    - name: L_QUANTITY
+      type: Decimal(15,2)
+      nullable: false
+      description: "Quantity"
+    - name: L_EXTENDEDPRICE
+      type: Decimal(15,2)
+      nullable: false
+      description: "Extended price"
+    - name: L_DISCOUNT
+      type: Decimal(15,2)
+      nullable: false
+      description: "Discount"
+    - name: L_TAX
+      type: Decimal(15,2)
+      nullable: false
+      description: "Tax"
+    - name: L_RETURNFLAG
+      type: LowCardinality(String)
+      nullable: false
+      description: "Return flag"
+    - name: L_LINESTATUS
+      type: LowCardinality(String)
+      nullable: false
+      description: "Line status"
+    - name: L_SHIPDATE
+      type: Date
+      nullable: false
+      description: "Ship date"
+    - name: L_COMMITDATE
+      type: Date
+      nullable: false
+      description: "Commit date"
+    - name: L_RECEIPTDATE
+      type: Date
+      nullable: false
+      description: "Receipt date"
+    - name: L_SHIPINSTRUCT
+      type: LowCardinality(String)
+      nullable: false
+      description: "Ship instructions"
+    - name: L_SHIPMODE
+      type: LowCardinality(String)
+      nullable: false
+      description: "Ship mode"
+    - name: L_COMMENT
+      type: String
+      nullable: false
+      description: "Comment"
+  validations:
+    - type: unique
+      fields: [L_ORDERKEY, L_LINENUMBER]
+    - type: not_null
+      fields: [L_ORDERKEY, L_PARTKEY, L_SUPPKEY, L_LINENUMBER, L_QUANTITY, L_EXTENDEDPRICE]
+    - type: foreign_key
+      field: L_ORDERKEY
+      reference: tpch.orders.O_ORDERKEY
+    - type: foreign_key
+      field: L_PARTKEY
+      reference: tpch.part.P_PARTKEY
+    - type: foreign_key
+      field: L_SUPPKEY
+      reference: tpch.supplier.S_SUPPKEY

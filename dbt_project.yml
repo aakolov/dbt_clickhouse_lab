@@ -6,6 +6,21 @@ name: 'clickhouse_starschema'
 version: '1.0.0'
 config-version: 2
 
+metadata:
+  data_governance:
+    enabled: true
+    owners:
+      - name: analytics_team
+        email: analytics@company.com
+        scope: all
+    classification:
+      default: internal
+      levels:
+        - public
+        - internal
+        - confidential
+        - restricted
+
 # This setting configures which "profile" dbt uses for this project.
 profile: 'clickhouse_starschema'
 

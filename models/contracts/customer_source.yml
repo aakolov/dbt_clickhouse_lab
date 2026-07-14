@@ -1,0 +1,45 @@
+contract:
+  version: 1.0
+  source: tpch.customer
+  description: "Customer data from TPC-H"
+  fields:
+    - name: C_CUSTKEY
+      type: UInt32
+      nullable: false
+      description: "Customer key"
+    - name: C_NAME
+      type: String
+      nullable: false
+      description: "Customer name"
+    - name: C_ADDRESS
+      type: String
+      nullable: false
+      description: "Customer address"
+    - name: C_NATIONKEY
+      type: UInt32
+      nullable: false
+      description: "Nation key"
+    - name: C_PHONE
+      type: String
+      nullable: false
+      description: "Phone number"
+    - name: C_ACCTBAL
+      type: Decimal(15,2)
+      nullable: false
+      description: "Account balance"
+    - name: C_MKTSEGMENT
+      type: String
+      nullable: false
+      description: "Market segment"
+    - name: C_COMMENT
+      type: String
+      nullable: false
+      description: "Comment"
+  validations:
+    - type: unique
+      fields: [C_CUSTKEY]
+    - type: not_null
+      fields: [C_CUSTKEY, C_NAME]
+    - type: foreign_key
+      field: C_NATIONKEY
+      reference: tpch.nation.N_NATIONKEY

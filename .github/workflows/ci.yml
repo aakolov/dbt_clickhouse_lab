@@ -11,7 +11,7 @@ jobs:
 
   ci_test:
     name: Clickhouse CI
-    timeout-minutes: 5
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     services:
       clickhouse:
@@ -27,4 +27,6 @@ jobs:
       - run: dbt debug --target ci
       - run: dbt deps --target ci
       - run: dbt run-operation init_s3_sources --target ci
+      - run: python scripts/validate_metrics.py
+      - run: python scripts/validate_semantic_models.py
       - run: dbt build --target ci

@@ -1,0 +1,46 @@
+contract:
+  version: 1.0
+  source: tpch.part
+  description: "Part data from TPC-H"
+  fields:
+    - name: P_PARTKEY
+      type: UInt32
+      nullable: false
+      description: "Part key"
+    - name: P_NAME
+      type: String
+      nullable: false
+      description: "Part name"
+    - name: P_MFGR
+      type: LowCardinality(String)
+      nullable: false
+      description: "Manufacturer"
+    - name: P_BRAND
+      type: LowCardinality(String)
+      nullable: false
+      description: "Brand"
+    - name: P_TYPE
+      type: String
+      nullable: false
+      description: "Type"
+    - name: P_SIZE
+      type: UInt32
+      nullable: false
+      description: "Size"
+    - name: P_CONTAINER
+      type: LowCardinality(String)
+      nullable: false
+      description: "Container"
+    - name: P_RETAILPRICE
+      type: Decimal(15,2)
+      nullable: false
+      description: "Retail price"
+    - name: P_COMMENT
+      type: String
+      nullable: false
+      description: "Comment"
+  validations:
+    - type: unique
+      fields: [P_PARTKEY]
+    - type: not_null
+      fields: [P_PARTKEY, P_NAME, P_MFGR, P_BRAND, P_TYPE, P_SIZE, P_RETAILPRICE]
