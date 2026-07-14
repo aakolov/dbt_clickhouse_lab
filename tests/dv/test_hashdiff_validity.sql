@@ -1,8 +1,8 @@
--- Test: dv_satellite_hashdiff
--- Description: Проверка расчета hashdiff в satellite'ах
--- Проверяет, что hashdiff рассчитан корректно на основе атрибутов
+-- Test: hashdiff_validity
+-- Description: Проверка корректности расчета HASHDIFF в satellite'ах
+-- Проверяет, что HASHDIFF рассчитан корректно на основе всех атрибутов
 
--- Проверка sat_customer_details: HASHDIFF должен быть MD5 от всех атрибутов (без LOAD_DATE)
+-- Проверка sat_customer_details: HASHDIFF должен быть MD5 от всех атрибутов
 SELECT
     'sat_customer_details' AS test_table,
     COUNT(*) AS total_count,
@@ -19,7 +19,7 @@ SELECT
 FROM {{ ref('sat_customer_details') }}
 HAVING assert(incorrect_hashdiff_count = 0, 'Found incorrect HASHDIFF calculations in sat_customer_details')
 
--- Проверка sat_order_details: HASHDIFF должен быть MD5 от всех атрибутов (без LOAD_DATE)
+-- Проверка sat_order_details: HASHDIFF должен быть MD5 от всех атрибутов
 SELECT
     'sat_order_details' AS test_table,
     COUNT(*) AS total_count,
@@ -37,7 +37,7 @@ SELECT
 FROM {{ ref('sat_order_details') }}
 HAVING assert(incorrect_hashdiff_count = 0, 'Found incorrect HASHDIFF calculations in sat_order_details')
 
--- Проверка sat_lineitem_details: HASHDIFF должен быть MD5 от всех атрибутов (без LOAD_DATE)
+-- Проверка sat_lineitem_details: HASHDIFF должен быть MD5 от всех атрибутов
 SELECT
     'sat_lineitem_details' AS test_table,
     COUNT(*) AS total_count,
@@ -62,7 +62,7 @@ SELECT
 FROM {{ ref('sat_lineitem_details') }}
 HAVING assert(incorrect_hashdiff_count = 0, 'Found incorrect HASHDIFF calculations in sat_lineitem_details')
 
--- Проверка sat_part_details: HASHDIFF должен быть MD5 от всех атрибутов (без LOAD_DATE)
+-- Проверка sat_part_details: HASHDIFF должен быть MD5 от всех атрибутов
 SELECT
     'sat_part_details' AS test_table,
     COUNT(*) AS total_count,
@@ -80,7 +80,7 @@ SELECT
 FROM {{ ref('sat_part_details') }}
 HAVING assert(incorrect_hashdiff_count = 0, 'Found incorrect HASHDIFF calculations in sat_part_details')
 
--- Проверка sat_supplier_details: HASHDIFF должен быть MD5 от всех атрибутов (без LOAD_DATE)
+-- Проверка sat_supplier_details: HASHDIFF должен быть MD5 от всех атрибутов
 SELECT
     'sat_supplier_details' AS test_table,
     COUNT(*) AS total_count,

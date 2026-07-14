@@ -1,13 +1,13 @@
 {{
     config(
         engine='MergeTree()',
-        order_by=['PART_HK']
+        order_by=['PART_HK', 'EFFECTIVE_FROM']
     )
 }}
 
 SELECT DISTINCT
     md5(toString(P_PARTKEY)) AS PART_HK,
-    now() AS LOAD_DATE,
+    toDateTime('1970-01-01 00:00:00') AS LOAD_DATE,
     P_PARTKEY,
     P_NAME,
     P_MFGR,
@@ -17,6 +17,9 @@ SELECT DISTINCT
     P_CONTAINER,
     P_RETAILPRICE,
     P_COMMENT,
+    toDateTime('1970-01-01 00:00:00') AS EFFECTIVE_FROM,
+    toDateTime('9999-12-31 23:59:59') AS EFFECTIVE_TO,
+    1 AS IS_CURRENT,
     md5(
         toString(P_PARTKEY) ||
         P_NAME ||

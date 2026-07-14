@@ -115,12 +115,12 @@ semantic_models:
 
   # Детальная информация о позициях заказов
   - name: lineitem_details
-    model: ref('v_lineitem_details_extended')
+    model: ref('mv_lineitem_enriched')
     description: "Детальная информация о позициях заказов. Содержит объединенные данные из lineitem, orders, customer, part и supplier с историей изменений."
     
     # Основное время для агрегации
     defaults:
-      agg_time: LOAD_DATE
+      agg_time: L_SHIPDATE
     
     # Описания измерений
     dimensions:
@@ -147,7 +147,7 @@ semantic_models:
             - return
           sensitivity: public
           owner: analytics_team
-      
+       
       - name: line_status
         expr: L_LINESTATUS
         description: "Статус позиции (F=Завершена, O=В процессе)"
@@ -158,7 +158,7 @@ semantic_models:
             - status
           sensitivity: public
           owner: analytics_team
-      
+       
       - name: ship_mode
         expr: L_SHIPMODE
         description: "Способ доставки (AIR, TRUCK, REG AIR, MAIL, SHIP, PIPE, FOB, PUSH)"
@@ -169,20 +169,7 @@ semantic_models:
             - shipping
           sensitivity: public
           owner: logistics_team
-      
-      - name: ship_date
-        expr: L_SHIPDATE
-        description: "Дата доставки"
-        type: time
-        type_params:
-          time_granularity: day
-        metadata:
-          tags:
-            - time_dimension
-            - ship_date
-          sensitivity: public
-          owner: analytics_team
-      
+       
       - name: commit_date
         expr: L_COMMITDATE
         description: "Дата выполнения"
@@ -195,7 +182,7 @@ semantic_models:
             - commit_date
           sensitivity: public
           owner: analytics_team
-      
+       
       - name: receipt_date
         expr: L_RECEIPTDATE
         description: "Дата получения"
@@ -208,7 +195,7 @@ semantic_models:
             - receipt_date
           sensitivity: public
           owner: analytics_team
-      
+       
       - name: ship_instruct
         expr: L_SHIPINSTRUCT
         description: "Инструкция доставки"
@@ -219,39 +206,39 @@ semantic_models:
             - shipping
           sensitivity: public
           owner: logistics_team
-      
-       - name: line_comment
-         expr: L_COMMENT
-         description: "Комментарий к позиции"
-         type: categorical
-         metadata:
-           tags:
-             - lineitem
-             - comment
-           sensitivity: internal
-           owner: analytics_team
        
-       - name: product_type
-         expr: P_TYPE
-         description: "Тип товара. Описывает характеристики товара (например, 'STANDARD', 'ECONOMY', 'PREMIUM')."
-         type: categorical
-         metadata:
-           tags:
-             - product
-             - reference
-           sensitivity: public
-           owner: analytics_team
-       
-       - name: product_size
-         expr: P_SIZE
-         description: "Размер товара. Числовое значение размера товара (от 1 до 50)."
-         type: categorical
-         metadata:
-           tags:
-             - product
-             - reference
-           sensitivity: public
-           owner: analytics_team
+        - name: line_comment
+          expr: L_COMMENT
+          description: "Комментарий к позиции"
+          type: categorical
+          metadata:
+            tags:
+              - lineitem
+              - comment
+            sensitivity: internal
+            owner: analytics_team
+        
+        - name: product_type
+          expr: P_TYPE
+          description: "Тип товара. Описывает характеристики товара (например, 'STANDARD', 'ECONOMY', 'PREMIUM')."
+          type: categorical
+          metadata:
+            tags:
+              - product
+              - reference
+            sensitivity: public
+            owner: analytics_team
+        
+        - name: product_size
+          expr: P_SIZE
+          description: "Размер товара. Числовое значение размера товара (от 1 до 50)."
+          type: categorical
+          metadata:
+            tags:
+              - product
+              - reference
+            sensitivity: public
+            owner: analytics_team
     
     # Метрики
     measures:

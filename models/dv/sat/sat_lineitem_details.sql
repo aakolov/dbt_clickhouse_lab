@@ -1,14 +1,14 @@
 {{
     config(
         engine='MergeTree()',
-        order_by=['ORDER_LINEITEM_HK', 'LOAD_DATE'],
+        order_by=['ORDER_LINEITEM_HK', 'EFFECTIVE_FROM'],
         partition_by='toYear(L_SHIPDATE)'
     )
 }}
 
 SELECT DISTINCT
     md5(toString(L_ORDERKEY) || '_' || toString(L_LINENUMBER)) AS ORDER_LINEITEM_HK,
-    now() AS LOAD_DATE,
+    toDateTime('1970-01-01 00:00:00') AS LOAD_DATE,
     L_ORDERKEY,
     L_PARTKEY,
     L_SUPPKEY,
@@ -25,6 +25,9 @@ SELECT DISTINCT
     L_SHIPINSTRUCT,
     L_SHIPMODE,
     L_COMMENT,
+    L_SHIPDATE AS EFFECTIVE_FROM,
+    toDateTime('9999-12-31 23:59:59') AS EFFECTIVE_TO,
+    1 AS IS_CURRENT,
     md5(
         toString(L_ORDERKEY) ||
         toString(L_LINENUMBER) ||
